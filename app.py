@@ -304,8 +304,8 @@ def generate_sample_sentiment_data(num_samples=50000):
     import random
     from datetime import datetime, timedelta
     
-    # Indian states list
-    states = list(INDIAN_STATES.keys())
+    # Indian states list - use the list directly, not .keys()
+    states = INDIAN_STATES
     
     # Tweet templates by sentiment
     positive_templates = [
@@ -898,14 +898,41 @@ def create_leader_comparison(leaders_data):
         return None, None
 
 
+def normalize_state_names_for_geojson(state_summary):
+    """Normalize state names to match GeoJSON file format"""
+    # Mapping from our state names to GeoJSON state names
+    state_name_mapping = {
+        'Andaman and Nicobar Islands': 'Andaman & Nicobar',
+        'Dadra and Nagar Haveli and Daman and Diu': 'Dadra and Nagar Haveli',
+        'Delhi': 'NCT of Delhi'
+    }
+    
+    if 'state' in state_summary.columns:
+        state_summary = state_summary.copy()
+        state_summary['state'] = state_summary['state'].replace(state_name_mapping)
+    elif state_summary.index.name == 'state':
+        state_summary = state_summary.reset_index()
+        state_summary['state'] = state_summary['state'].replace(state_name_mapping)
+        state_summary = state_summary.set_index('state')
+    
+    return state_summary
+
+
 def create_india_heatmap(state_summary):
     """Create India map heatmap showing state-wise sentiment"""
     try:
         if state_summary.empty:
             return None
         
+        # Normalize state names to match GeoJSON
+        state_summary = normalize_state_names_for_geojson(state_summary)
+        
         # Prepare data
         map_data = state_summary.reset_index()
+        
+        # Debug: Show state count
+        st.write(f"🗺️ Mapping {len(map_data)} states to India map")
+        
         map_data['hover_text'] = (
             map_data['state'] + '<br>' +
             'Sentiment Index: ' + map_data['sentiment_index'].round(3).astype(str) + '<br>' +
@@ -975,7 +1002,9 @@ def create_india_heatmap(state_summary):
         
         return fig
     except Exception as e:
-        st.error(f"Error creating India heatmap: {str(e)}")
+        st.error(f"❌ Error creating India heatmap: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return None
 
 
