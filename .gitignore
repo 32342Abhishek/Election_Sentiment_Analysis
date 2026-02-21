@@ -32,7 +32,7 @@ wheels/
 # Data files
 data/raw/*.csv
 data/raw/*.json
-data/processed/*.csv
+# data/processed/*.csv  # Commented out - using Git LFS for large files
 data/processed/*.json
 *.pkl
 
