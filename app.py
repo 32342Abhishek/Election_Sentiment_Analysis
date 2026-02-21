@@ -299,6 +299,84 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+def generate_sample_sentiment_data(num_samples=50000):
+    """Generate sample tweets with sentiment analysis for demo purposes"""
+    import random
+    from datetime import datetime, timedelta
+    
+    # Indian states list
+    states = list(INDIAN_STATES.keys())
+    
+    # Tweet templates by sentiment
+    positive_templates = [
+        "Great speech by {leader}! Impressed by the vision for India. #IndianElections",
+        "{leader} is doing amazing work for development. Full support! #Vote2024",
+        "Excellent policies announced by {leader}. This will help our state grow.",
+        "Attended {leader}'s rally today. Very inspiring! #IndiaFirst",
+        "Strong leadership by {leader}. India needs this kind of governance."
+    ]
+    
+    negative_templates = [
+        "Disappointed with {leader}'s broken promises. #IndianElections",
+        "Time for change. {leader} has failed to deliver. #Vote2024",
+        "Not impressed with {leader}'s handling of issues.",
+        "Empty promises by {leader}. People are suffering.",
+        "{leader} needs to be accountable. Enough is enough."
+    ]
+    
+    neutral_templates = [
+        "{leader} visits {state} for campaign rally today.",
+        "News: {leader} announces new policy for rural development.",
+        "{leader} addresses press conference on economic matters.",
+        "Election schedule announced for {state} constituency.",
+        "{leader} participates in debate on national television."
+    ]
+    
+    leaders = ['Narendra Modi', 'Rahul Gandhi', 'Arvind Kejriwal', 'Mamata Banerjee', 
+               'Amit Shah', 'Akhilesh Yadav', 'Tejashwi Yadav', 'MK Stalin']
+    
+    data = []
+    for i in range(num_samples):
+        # Random sentiment distribution (40% positive, 30% negative, 30% neutral)
+        rand_val = random.random()
+        if rand_val < 0.4:
+            sentiment = 'positive'
+            template = random.choice(positive_templates)
+            vader_score = random.uniform(0.3, 0.9)
+            textblob_score = random.uniform(0.2, 0.8)
+        elif rand_val < 0.7:
+            sentiment = 'negative'
+            template = random.choice(negative_templates)
+            vader_score = random.uniform(-0.9, -0.3)
+            textblob_score = random.uniform(-0.8, -0.2)
+        else:
+            sentiment = 'neutral'
+            template = random.choice(neutral_templates)
+            vader_score = random.uniform(-0.2, 0.2)
+            textblob_score = random.uniform(-0.1, 0.1)
+        
+        # Create tweet
+        state = random.choice(states)
+        leader = random.choice(leaders)
+        text = template.format(leader=leader, state=state)
+        
+        record = {
+            'text': text,
+            'cleaned_text': text.lower(),
+            'created_at': (datetime.now() - timedelta(days=random.randint(0, 60))).strftime('%Y-%m-%d'),
+            'like_count': int(random.expovariate(0.01)),
+            'retweet_count': int(random.expovariate(0.02)),
+            'reply_count': int(random.expovariate(0.05)),
+            'state': state,
+            'ensemble_sentiment': sentiment,
+            'vader_compound': vader_score,
+            'textblob_polarity': textblob_score
+        }
+        data.append(record)
+    
+    return pd.DataFrame(data)
+
+
 @st.cache_data
 def load_data():
     """Load processed sentiment data with optimization"""
@@ -325,11 +403,11 @@ def load_data():
             
             return df
         else:
-            st.warning("No data found. Please run the analysis pipeline first.")
-            return pd.DataFrame()
+            st.info("📊 Generating sample data for demonstration (50,000 tweets)...")
+            return generate_sample_sentiment_data(50000)
     except Exception as e:
-        st.error(f"Error loading data: {str(e)}")
-        return pd.DataFrame()
+        st.warning(f"⚠️ Could not load data file. Generating sample data for demo...")
+        return generate_sample_sentiment_data(50000)
 
 
 @st.cache_data
@@ -923,12 +1001,6 @@ def main():
     with st.spinner('🔄 Loading sentiment data... This may take a moment...'):
         df = load_data()
         state_summary = load_state_summary()
-    
-    if df.empty:
-        st.error("⚠️ No data available. Please run the analysis pipeline first.")
-        st.info("Run the following command to generate data:")
-        st.code("py main.py --data-source sample --num-samples 75000", language="bash")
-        return
     
     # Show data loaded successfully with comprehensive info
     total_loaded = len(df)
